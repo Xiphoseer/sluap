@@ -1,0 +1,12 @@
+[package]
+name = "sluap"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+unicode-xid = "0.2.3"
+memchr = "2.5.0"
+
+[dependencies.lexical-core]
+version = "0.8.5"
+features = ["power-of-two"]
