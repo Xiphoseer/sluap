@@ -13,3 +13,5 @@ mod tokens;
 pub use tokens::{Symbol, Token, TokenKind};
 mod lexer;
 pub use lexer::{Error, Lexer};
+mod parser;
+pub use parser::{Parser, Sink};

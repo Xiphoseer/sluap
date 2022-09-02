@@ -30,7 +30,10 @@ impl ByteLen for str {
 }
 
 /// Infallible decoder
-pub trait Decoder<'a>: Clone {
+pub trait Decoder<'a>: Clone
+where
+    for<'i> &'i Self::Slice: Copy,
+{
     type Slice: ?Sized + ByteLen;
 
     fn as_slice(&self) -> &'a Self::Slice;

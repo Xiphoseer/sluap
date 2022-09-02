@@ -85,7 +85,7 @@ impl<'a, D: Decoder<'a>> Lexer<D> {
         self.decoder.peek_char()
     }
 
-    pub fn token(&mut self) -> Result<Token<'a, D::Slice>, Error> {
+    pub fn token(&mut self) -> Result<Token<&'a D::Slice>, Error> {
         let start = self.decoder.as_slice();
         let kind = self.token_kind()?;
         let end = self.decoder.as_slice();

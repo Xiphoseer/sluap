@@ -3,13 +3,13 @@
 use crate::Keyword;
 
 #[derive(Debug, Copy, Clone, PartialEq)]
-pub struct Token<'a, S: ?Sized> {
-    span: &'a S,
+pub struct Token<S> {
+    span: S,
     kind: TokenKind,
 }
 
-impl<'a, S: ?Sized> Token<'a, S> {
-    pub fn new(span: &'a S, kind: TokenKind) -> Self {
+impl<S: ?Sized + Copy> Token<S> {
+    pub fn new(span: S, kind: TokenKind) -> Self {
         Self { span, kind }
     }
 
@@ -17,7 +17,7 @@ impl<'a, S: ?Sized> Token<'a, S> {
         self.kind
     }
 
-    pub fn span(&self) -> &'a S {
+    pub fn span(&self) -> S {
         self.span
     }
 }
