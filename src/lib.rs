@@ -6,7 +6,7 @@
 //! See: <https://www.lua.org/manual/5.1/manual.html>
 
 mod encoding;
-pub use encoding::{Decoder, Latin1Decoder, Utf8Decoder};
+pub use encoding::{Decoder, Latin1Decoded, Latin1Decoder, Utf8Decoder};
 mod keywords;
 pub use keywords::Keyword;
 mod tokens;

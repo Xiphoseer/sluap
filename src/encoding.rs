@@ -1,4 +1,7 @@
-use core::str::Chars;
+use core::{
+    fmt::{self, Write},
+    str::Chars,
+};
 
 pub trait ByteLen {
     fn len(&self) -> usize;
@@ -62,6 +65,17 @@ fn win1252_char_decode(chr: u8) -> char {
         unsafe { *W1252_X8.get_unchecked(chr as usize - 0x80) }
     } else {
         char::from(chr)
+    }
+}
+
+pub struct Latin1Decoded<'a>(pub &'a [u8]);
+
+impl<'a> fmt::Display for Latin1Decoded<'a> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        for &chr in self.0 {
+            f.write_char(win1252_char_decode(chr))?;
+        }
+        Ok(())
     }
 }
 

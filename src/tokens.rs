@@ -12,6 +12,14 @@ impl<'a, S: ?Sized> Token<'a, S> {
     pub fn new(span: &'a S, kind: TokenKind) -> Self {
         Self { span, kind }
     }
+
+    pub fn kind(&self) -> TokenKind {
+        self.kind
+    }
+
+    pub fn span(&self) -> &'a S {
+        self.span
+    }
 }
 
 /// Output of the lexer
