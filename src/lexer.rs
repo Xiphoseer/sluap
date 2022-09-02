@@ -161,8 +161,8 @@ impl<'a, D: Decoder<'a>> Lexer<D> {
                 }
                 _ => Ok(TokenKind::Symbol(Symbol::Dot)),
             },
-            Some('\'') => todo!("string '"),
-            Some('"') => todo!("string \""),
+            Some('\'') => self.string_token(b'\''),
+            Some('"') => self.string_token(b'"'),
             Some(c) if c.is_whitespace() => {
                 while let Some(c) = self.peek_char() {
                     if c.is_whitespace() {
@@ -174,7 +174,7 @@ impl<'a, D: Decoder<'a>> Lexer<D> {
                 // could return EOF here, but we had at least one whitespace
                 Ok(TokenKind::Whitespace)
             }
-            Some(c) if c.is_xid_start() => {
+            Some(c) if c.is_xid_start() || c == '_' => {
                 while let Some(c) = self.peek_char() {
                     if c.is_xid_continue() {
                         self.pop_peeked();
@@ -218,6 +218,42 @@ impl<'a, D: Decoder<'a>> Lexer<D> {
             },
             Some(_) => Err(Error {}),
             None => Ok(TokenKind::Eof),
+        }
+    }
+
+    fn string_token(&mut self, quote_char: u8) -> Result<TokenKind, Error> {
+        loop {
+            let input = self.decoder.as_bytes();
+            if let Some(count) = memchr2(quote_char, b'\\', input) {
+                self.decoder.skip_bytes(count);
+                let next = self
+                    .next_char()
+                    .expect("memchr2 should prove there is a char here");
+                if next == '\\' {
+                    let _ = match self.next_char() {
+                        Some('a') => Ok("bell"),
+                        Some('b') => Ok("backspace"),
+                        Some('f') => Ok("form feed"),
+                        Some('n') => Ok("newline"),
+                        Some('r') => Ok("carriage return"),
+                        Some('t') => Ok("horizontal tab"),
+                        Some('v') => Ok("vertical tab"),
+                        Some('\\') => Ok("backslash"),
+                        Some('"') => Ok("quotation mark [double quote]"),
+                        Some('\'') => Ok("quotation mark [single quote]"),
+                        Some(x) if x.is_ascii_digit() => {
+                            todo!("digit escape")
+                        }
+                        _ => Err(Error { /* invalid escape sequence */}),
+                    }?;
+                } else {
+                    assert_eq!(next, quote_char as char);
+                    break Ok(TokenKind::String);
+                }
+            } else {
+                // Reached EOF before string end delimiter
+                break Err(Error {});
+            }
         }
     }
 }

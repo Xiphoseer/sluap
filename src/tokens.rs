@@ -15,6 +15,8 @@ pub enum TokenKind {
     Symbol(Symbol),
     /// A comment
     Comment,
+    /// A string (with escaping)
+    String,
     /// A hexadecimal integer literal
     Hex(u32),
     /// A floating point literal
