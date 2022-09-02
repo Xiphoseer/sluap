@@ -1,7 +1,36 @@
 use core::str::Chars;
 
+pub trait ByteLen {
+    fn len(&self) -> usize;
+
+    fn split_at(&self, mid: usize) -> (&Self, &Self);
+}
+
+impl ByteLen for [u8] {
+    fn len(&self) -> usize {
+        self.len()
+    }
+
+    fn split_at(&self, mid: usize) -> (&Self, &Self) {
+        self.split_at(mid)
+    }
+}
+
+impl ByteLen for str {
+    fn len(&self) -> usize {
+        self.len()
+    }
+
+    fn split_at(&self, mid: usize) -> (&Self, &Self) {
+        self.split_at(mid)
+    }
+}
+
 /// Infallible decoder
 pub trait Decoder<'a>: Clone {
+    type Slice: ?Sized + ByteLen;
+
+    fn as_slice(&self) -> &'a Self::Slice;
     fn as_bytes(&self) -> &'a [u8];
     fn next_char(&mut self) -> Option<char>;
     fn peek_char(&mut self) -> Option<char>;
@@ -37,6 +66,12 @@ fn win1252_char_decode(chr: u8) -> char {
 }
 
 impl<'a> Decoder<'a> for Latin1Decoder<'a> {
+    type Slice = [u8];
+
+    fn as_slice(&self) -> &'a Self::Slice {
+        self.rest
+    }
+
     fn as_bytes(&self) -> &'a [u8] {
         self.rest
     }
@@ -66,9 +101,23 @@ pub struct Utf8Decoder<'a> {
     inner: Chars<'a>,
 }
 
+impl<'a> Utf8Decoder<'a> {
+    pub fn new(input: &'a str) -> Self {
+        Self {
+            inner: input.chars(),
+        }
+    }
+}
+
 impl<'a> Decoder<'a> for Utf8Decoder<'a> {
+    type Slice = str;
+
     fn as_bytes(&self) -> &'a [u8] {
         self.inner.as_str().as_bytes()
+    }
+
+    fn as_slice(&self) -> &'a Self::Slice {
+        self.inner.as_str()
     }
 
     // This may panic if count isn't within bounds

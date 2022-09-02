@@ -2,7 +2,11 @@ use lexical_core::{format::STANDARD, NumberFormatBuilder, ParseFloatOptions, Par
 use memchr::{memchr, memchr2};
 use unicode_xid::UnicodeXID;
 
-use crate::{tokens::Symbol, Decoder, Keyword, TokenKind};
+use crate::{
+    encoding::ByteLen,
+    tokens::{Symbol, Token},
+    Decoder, Keyword, TokenKind,
+};
 
 pub struct Lexer<D> {
     decoder: D,
@@ -81,7 +85,16 @@ impl<'a, D: Decoder<'a>> Lexer<D> {
         self.decoder.peek_char()
     }
 
-    pub fn next_token(&mut self) -> Result<TokenKind, Error> {
+    pub fn token(&mut self) -> Result<Token<'a, D::Slice>, Error> {
+        let start = self.decoder.as_slice();
+        let kind = self.token_kind()?;
+        let end = self.decoder.as_slice();
+        let len = start.len() - end.len();
+        let (span, _) = start.split_at(len);
+        Ok(Token::new(span, kind))
+    }
+
+    pub fn token_kind(&mut self) -> Result<TokenKind, Error> {
         let start = self.decoder.as_bytes();
         match self.next_char() {
             Some('+') => Ok(TokenKind::Symbol(Symbol::Plus)),
@@ -260,21 +273,21 @@ impl<'a, D: Decoder<'a>> Lexer<D> {
 
 #[cfg(test)]
 mod tests {
-    use crate::{tokens::Symbol, Keyword, Latin1Decoder, Lexer, TokenKind};
+    use crate::{tokens::Symbol, Keyword, Latin1Decoder, Lexer, Token, TokenKind, Utf8Decoder};
 
     #[test]
     fn test_keywords() {
         let decoder = Latin1Decoder::new(b"and or then true");
         let mut lexer = Lexer::new(decoder);
 
-        assert_eq!(lexer.next_token(), Ok(TokenKind::Keyword(Keyword::And)));
-        assert_eq!(lexer.next_token(), Ok(TokenKind::Whitespace));
-        assert_eq!(lexer.next_token(), Ok(TokenKind::Keyword(Keyword::Or)));
-        assert_eq!(lexer.next_token(), Ok(TokenKind::Whitespace));
-        assert_eq!(lexer.next_token(), Ok(TokenKind::Keyword(Keyword::Then)));
-        assert_eq!(lexer.next_token(), Ok(TokenKind::Whitespace));
-        assert_eq!(lexer.next_token(), Ok(TokenKind::Keyword(Keyword::True)));
-        assert_eq!(lexer.next_token(), Ok(TokenKind::Eof));
+        assert_eq!(lexer.token_kind(), Ok(TokenKind::Keyword(Keyword::And)));
+        assert_eq!(lexer.token_kind(), Ok(TokenKind::Whitespace));
+        assert_eq!(lexer.token_kind(), Ok(TokenKind::Keyword(Keyword::Or)));
+        assert_eq!(lexer.token_kind(), Ok(TokenKind::Whitespace));
+        assert_eq!(lexer.token_kind(), Ok(TokenKind::Keyword(Keyword::Then)));
+        assert_eq!(lexer.token_kind(), Ok(TokenKind::Whitespace));
+        assert_eq!(lexer.token_kind(), Ok(TokenKind::Keyword(Keyword::True)));
+        assert_eq!(lexer.token_kind(), Ok(TokenKind::Eof));
     }
 
     #[test]
@@ -282,12 +295,12 @@ mod tests {
         let decoder = Latin1Decoder::new(b"+-*/%");
         let mut lexer = Lexer::new(decoder);
 
-        assert_eq!(lexer.next_token(), Ok(TokenKind::Symbol(Symbol::Plus)));
-        assert_eq!(lexer.next_token(), Ok(TokenKind::Symbol(Symbol::Minus)));
-        assert_eq!(lexer.next_token(), Ok(TokenKind::Symbol(Symbol::Times)));
-        assert_eq!(lexer.next_token(), Ok(TokenKind::Symbol(Symbol::Slash)));
-        assert_eq!(lexer.next_token(), Ok(TokenKind::Symbol(Symbol::Percent)));
-        assert_eq!(lexer.next_token(), Ok(TokenKind::Eof));
+        assert_eq!(lexer.token_kind(), Ok(TokenKind::Symbol(Symbol::Plus)));
+        assert_eq!(lexer.token_kind(), Ok(TokenKind::Symbol(Symbol::Minus)));
+        assert_eq!(lexer.token_kind(), Ok(TokenKind::Symbol(Symbol::Times)));
+        assert_eq!(lexer.token_kind(), Ok(TokenKind::Symbol(Symbol::Slash)));
+        assert_eq!(lexer.token_kind(), Ok(TokenKind::Symbol(Symbol::Percent)));
+        assert_eq!(lexer.token_kind(), Ok(TokenKind::Eof));
     }
 
     #[test]
@@ -296,19 +309,40 @@ mod tests {
         let decoder = Latin1Decoder::new(b"3   3.0   3.1416   314.16e-2   0.31416E1   0xff   0x56");
         let mut lexer = Lexer::new(decoder);
 
-        assert_eq!(lexer.next_token(), Ok(TokenKind::Number(3.0)));
-        assert_eq!(lexer.next_token(), Ok(TokenKind::Whitespace));
-        assert_eq!(lexer.next_token(), Ok(TokenKind::Number(3.0)));
-        assert_eq!(lexer.next_token(), Ok(TokenKind::Whitespace));
-        assert_eq!(lexer.next_token(), Ok(TokenKind::Number(3.1416)));
-        assert_eq!(lexer.next_token(), Ok(TokenKind::Whitespace));
-        assert_eq!(lexer.next_token(), Ok(TokenKind::Number(3.1416)));
-        assert_eq!(lexer.next_token(), Ok(TokenKind::Whitespace));
-        assert_eq!(lexer.next_token(), Ok(TokenKind::Number(3.1416)));
-        assert_eq!(lexer.next_token(), Ok(TokenKind::Whitespace));
-        assert_eq!(lexer.next_token(), Ok(TokenKind::Hex(0xFF)));
-        assert_eq!(lexer.next_token(), Ok(TokenKind::Whitespace));
-        assert_eq!(lexer.next_token(), Ok(TokenKind::Hex(0x56)));
-        assert_eq!(lexer.next_token(), Ok(TokenKind::Eof));
+        assert_eq!(lexer.token_kind(), Ok(TokenKind::Number(3.0)));
+        assert_eq!(lexer.token_kind(), Ok(TokenKind::Whitespace));
+        assert_eq!(lexer.token_kind(), Ok(TokenKind::Number(3.0)));
+        assert_eq!(lexer.token_kind(), Ok(TokenKind::Whitespace));
+        assert_eq!(lexer.token_kind(), Ok(TokenKind::Number(3.1416)));
+        assert_eq!(lexer.token_kind(), Ok(TokenKind::Whitespace));
+        assert_eq!(lexer.token_kind(), Ok(TokenKind::Number(3.1416)));
+        assert_eq!(lexer.token_kind(), Ok(TokenKind::Whitespace));
+        assert_eq!(lexer.token_kind(), Ok(TokenKind::Number(3.1416)));
+        assert_eq!(lexer.token_kind(), Ok(TokenKind::Whitespace));
+        assert_eq!(lexer.token_kind(), Ok(TokenKind::Hex(0xFF)));
+        assert_eq!(lexer.token_kind(), Ok(TokenKind::Whitespace));
+        assert_eq!(lexer.token_kind(), Ok(TokenKind::Hex(0x56)));
+        assert_eq!(lexer.token_kind(), Ok(TokenKind::Eof));
+    }
+
+    #[test]
+    fn test_strings() {
+        let mut lexer = Lexer::new(Utf8Decoder::new(
+            r#"'Hello World!' 'Two\nLines' "double quotes""#,
+        ));
+        assert_eq!(
+            lexer.token(),
+            Ok(Token::new("'Hello World!'", TokenKind::String))
+        );
+        assert_eq!(lexer.token(), Ok(Token::new(" ", TokenKind::Whitespace)));
+        assert_eq!(
+            lexer.token(),
+            Ok(Token::new(r#"'Two\nLines'"#, TokenKind::String))
+        );
+        assert_eq!(lexer.token(), Ok(Token::new(" ", TokenKind::Whitespace)));
+        assert_eq!(
+            lexer.token(),
+            Ok(Token::new(r#""double quotes""#, TokenKind::String))
+        );
     }
 }

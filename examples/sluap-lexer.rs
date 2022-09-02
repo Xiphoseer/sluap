@@ -7,7 +7,7 @@ fn main() {
         let bytes = std::fs::read(&path).unwrap();
         let mut lexer = Lexer::new(Latin1Decoder::new(&bytes));
         loop {
-            let token = lexer.next_token();
+            let token = lexer.token_kind();
             println!("{:?}", token);
 
             if token == Ok(TokenKind::Eof) {

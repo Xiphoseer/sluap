@@ -10,6 +10,6 @@ pub use encoding::{Decoder, Latin1Decoder, Utf8Decoder};
 mod keywords;
 pub use keywords::Keyword;
 mod tokens;
-pub use tokens::{Symbol, TokenKind};
+pub use tokens::{Symbol, Token, TokenKind};
 mod lexer;
 pub use lexer::{Error, Lexer};
