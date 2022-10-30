@@ -1,4 +1,4 @@
-//!
+//! # The Parser
 //!
 //! ## Lifetime conventions
 //!
